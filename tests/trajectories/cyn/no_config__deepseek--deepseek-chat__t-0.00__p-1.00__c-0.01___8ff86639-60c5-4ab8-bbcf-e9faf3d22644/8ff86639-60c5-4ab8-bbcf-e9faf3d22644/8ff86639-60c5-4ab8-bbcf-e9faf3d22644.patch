@@ -1,0 +1,155 @@
+diff --git a/reproduce_issues.py b/reproduce_issues.py
+new file mode 100644
+index 0000000..b4311bb
+--- /dev/null
++++ b/reproduce_issues.py
+@@ -0,0 +1,50 @@
++#!/usr/bin/env python3
++"""Script to reproduce the issues mentioned in the problem statements."""
++
++import sys
++import os
++
++# Add src to path to import testpkg
++sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
++
++print("=== Testing issue from problem statement 1 ===")
++print("Running missing_colon.py from tests directory...")
++try:
++    # Try to import and run the missing_colon.py from tests
++    exec(open('tests/missing_colon.py').read())
++except SyntaxError as e:
++    print(f"SyntaxError: {e}")
++    print("This confirms the issue - missing colon in function definition")
++
++print("\n=== Testing issue from problem statement 1a ===")
++print("Running existing_lint_error.py from tests directory...")
++try:
++    # Try to import and run the existing_lint_error.py from tests
++    exec(open('tests/existing_lint_error.py').read())
++except SyntaxError as e:
++    print(f"SyntaxError: {e}")
++    print("This confirms the issue - missing colon in function definition")
++
++print("\n=== Testing issue from problem statement 22 ===")
++print("Testing tribonacci(0) returns None issue...")
++try:
++    from testpkg.tribonacci import tribonacci
++    result = tribonacci(0)
++    print(f"tribonacci(0) = {result}")
++    if result != 0:
++        print(f"ERROR: tribonacci(0) should return 0, but returned {result}")
++    else:
++        print("SUCCESS: tribonacci(0) returns 0")
++except Exception as e:
++    print(f"Error: {e}")
++
++print("\n=== Testing other tribonacci values ===")
++try:
++    from testpkg.tribonacci import tribonacci
++    print(f"tribonacci(1) = {tribonacci(1)}")
++    print(f"tribonacci(2) = {tribonacci(2)}")
++    print(f"tribonacci(3) = {tribonacci(3)}")
++    print(f"tribonacci(4) = {tribonacci(4)}")
++    print(f"tribonacci(5) = {tribonacci(5)}")
++except Exception as e:
++    print(f"Error: {e}")
+\ No newline at end of file
+diff --git a/src/testpkg/missing_colon.py b/src/testpkg/missing_colon.py
+index 20edef5..5857437 100755
+--- a/src/testpkg/missing_colon.py
++++ b/src/testpkg/missing_colon.py
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env python3
+ 
+ 
+-def division(a: float, b: float) -> float
++def division(a: float, b: float) -> float:
+     return a/b
+ 
+ 
+diff --git a/src/testpkg/tribonacci.py b/src/testpkg/tribonacci.py
+index 3236432..c7f076e 100644
+--- a/src/testpkg/tribonacci.py
++++ b/src/testpkg/tribonacci.py
+@@ -7,10 +7,19 @@ def tribonacci(n: int) -> int:
+     - tribonacci(2) = 1
+     - tribonacci(n) = tribonacci(n-1) + tribonacci(n-2) + tribonacci(n-3)
+     """
+-    trib_history = [1, 1, 2, None]
+-    if n < 3:
+-        return trib_history[n-1]
+-    for _ in range(n-3):
+-        trib_history[3] = sum(trib_history[:3])
+-        trib_history[:3] = trib_history[1:]
+-    return trib_history[3]
+\ No newline at end of file
++    # Handle base cases
++    if n == 0:
++        return 0
++    elif n == 1 or n == 2:
++        return 1
++    
++    # Initialize with first 3 values
++    trib_history = [0, 1, 1]
++    
++    # Calculate tribonacci numbers up to n
++    for i in range(3, n + 1):
++        next_val = sum(trib_history)
++        trib_history = trib_history[1:] + [next_val]
++    
++    # Return the last value
++    return trib_history[-1]
+\ No newline at end of file
+diff --git a/tests/existing_lint_error.py b/tests/existing_lint_error.py
+index 45f4308..2bcec98 100755
+--- a/tests/existing_lint_error.py
++++ b/tests/existing_lint_error.py
+@@ -6,22 +6,25 @@ lint error in the codebase.
+ 
+ 
+ def f821():
+-    notdefined
++    # notdefined  # This was an undefined variable
++    pass
+ 
+ 
+-def division(a: float, b: float) -> float
+-    asdf
++def division(a: float, b: float) -> float:
++    # asdf  # This was an undefined variable
+     return a/b
+ 
+ 
+ 
+ def another_func():
+-    asdf
+-
+-def another_func():
+-    asdf
+-    asdf
+-    asdf
++    # asdf  # This was an undefined variable
++    pass
++
++def another_func2():  # Changed name to avoid duplicate
++    # asdf  # This was an undefined variable
++    # asdf  # This was an undefined variable
++    # asdf  # This was an undefined variable
++    pass
+ 
+ if __name__ == "__main__":
+     print(division(123, 15))
+diff --git a/tests/missing_colon.py b/tests/missing_colon.py
+index 20edef5..5857437 100755
+--- a/tests/missing_colon.py
++++ b/tests/missing_colon.py
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env python3
+ 
+ 
+-def division(a: float, b: float) -> float
++def division(a: float, b: float) -> float:
+     return a/b
+ 
+ 

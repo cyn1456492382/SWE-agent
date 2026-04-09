@@ -1,0 +1,149 @@
+diff --git a/reproduce_error.py b/reproduce_error.py
+new file mode 100644
+index 0000000..7fbff50
+--- /dev/null
++++ b/reproduce_error.py
+@@ -0,0 +1,28 @@
++#!/usr/bin/env python3
++# Script to reproduce the SyntaxError from the PR description
++
++# First, let's try to run the missing_colon.py file directly
++print("Testing missing_colon.py from tests directory...")
++try:
++    exec(open("/SWE-agent__test-repo/tests/missing_colon.py").read())
++except SyntaxError as e:
++    print(f"SyntaxError caught: {e}")
++    print(f"Error at line {e.lineno}: {e.text}")
++
++print("\n" + "="*50 + "\n")
++
++# Now let's test the specific call mentioned in the PR
++print("Testing division(23, 0) call...")
++try:
++    # First we need to define the function correctly
++    exec("""
++def division(a: float, b: float) -> float:
++    return a/b
++""")
++    # Then call it
++    result = division(23, 0)
++    print(f"Result: {result}")
++except ZeroDivisionError as e:
++    print(f"ZeroDivisionError (expected): {e}")
++except Exception as e:
++    print(f"Other error: {type(e).__name__}: {e}")
+\ No newline at end of file
+diff --git a/src/testpkg/missing_colon.py b/src/testpkg/missing_colon.py
+index 20edef5..5857437 100755
+--- a/src/testpkg/missing_colon.py
++++ b/src/testpkg/missing_colon.py
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env python3
+ 
+ 
+-def division(a: float, b: float) -> float
++def division(a: float, b: float) -> float:
+     return a/b
+ 
+ 
+diff --git a/test_fixes.py b/test_fixes.py
+new file mode 100644
+index 0000000..01e8bcc
+--- /dev/null
++++ b/test_fixes.py
+@@ -0,0 +1,68 @@
++#!/usr/bin/env python3
++# Test script to verify the fixes
++
++import os
++import sys
++
++def test_file(filepath):
++    """Test if a Python file can be imported without syntax errors."""
++    print(f"\nTesting {filepath}...")
++    try:
++        # Read and execute the file
++        with open(filepath, 'r') as f:
++            code = f.read()
++        exec(code, {})
++        print(f"✓ {filepath} executed successfully")
++        return True
++    except SyntaxError as e:
++        print(f"✗ SyntaxError in {filepath}: {e}")
++        print(f"  Line {e.lineno}: {e.text}")
++        return False
++    except Exception as e:
++        # Other errors (like NameError for undefined variables) are OK
++        # as long as it's not a syntax error
++        print(f"✓ {filepath} parsed successfully (other error: {type(e).__name__})")
++        return True
++
++def main():
++    files_to_test = [
++        "/SWE-agent__test-repo/tests/missing_colon.py",
++        "/SWE-agent__test-repo/src/testpkg/missing_colon.py",
++        "/SWE-agent__test-repo/tests/existing_lint_error.py",
++    ]
++    
++    print("Testing all files for syntax errors...")
++    print("="*60)
++    
++    all_passed = True
++    for filepath in files_to_test:
++        if not test_file(filepath):
++            all_passed = False
++    
++    print("\n" + "="*60)
++    if all_passed:
++        print("All files passed syntax check!")
++    else:
++        print("Some files failed syntax check.")
++        sys.exit(1)
++    
++    # Test the specific example from the PR description
++    print("\n" + "="*60)
++    print("Testing the specific example from PR description...")
++    print("Running: division(23, 0)")
++    
++    # First, let's import the division function from the fixed file
++    sys.path.insert(0, "/SWE-agent__test-repo/src/testpkg")
++    try:
++        from testpkg.missing_colon import division
++        try:
++            result = division(23, 0)
++            print(f"Result: {result}")
++        except ZeroDivisionError as e:
++            print(f"✓ Got expected ZeroDivisionError: {e}")
++    except Exception as e:
++        print(f"✗ Error: {type(e).__name__}: {e}")
++        sys.exit(1)
++
++if __name__ == "__main__":
++    main()
+\ No newline at end of file
+diff --git a/tests/existing_lint_error.py b/tests/existing_lint_error.py
+index 45f4308..97f9007 100755
+--- a/tests/existing_lint_error.py
++++ b/tests/existing_lint_error.py
+@@ -9,7 +9,7 @@ def f821():
+     notdefined
+ 
+ 
+-def division(a: float, b: float) -> float
++def division(a: float, b: float) -> float:
+     asdf
+     return a/b
+ 
+diff --git a/tests/missing_colon.py b/tests/missing_colon.py
+index 20edef5..5857437 100755
+--- a/tests/missing_colon.py
++++ b/tests/missing_colon.py
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env python3
+ 
+ 
+-def division(a: float, b: float) -> float
++def division(a: float, b: float) -> float:
+     return a/b
+ 
+ 
