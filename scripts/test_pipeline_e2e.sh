@@ -31,7 +31,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-CONFIG_FILE="${REPO_ROOT}/config/pipeline_qwen.yaml"
+CONFIG_FILE="${REPO_ROOT}/config/pipeline_qwen30b.yaml"
 
 SMALL_MODEL_URL="http://localhost:30000/v1"
 LARGE_MODEL_URL="http://localhost:30001/v1"
@@ -182,7 +182,7 @@ single_test() {
         --instances.type=swe_bench \
         --instances.subset=lite \
         --instances.split=dev \
-        --instances.slice=":1" \
+        --instances.slice="1:2" \
         --instances.evaluate="${evaluate_flag}" \
         --instances.deployment.docker_args='--memory=10g' \
         "${INSTANCE_EXTRA_ARGS[@]}" \

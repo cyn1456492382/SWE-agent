@@ -24,8 +24,8 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 SUBSET="lite"
 SPLIT="dev"
-SLICE=":10"
-WORKERS=2
+SLICE="0:100"
+WORKERS=4
 LARGE_URL="http://localhost:30001/v1"
 SMALL_URL="http://localhost:30000/v1"
 
@@ -41,14 +41,17 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-EVALUATE_FLAG="False"
-if [ -n "${SWE_BENCH_API_KEY:-}" ]; then
+EVALUATE_FLAG="True"
+if [ -n "${SWEBENCH_API_KEY:-}" ]; then
     EVALUATE_FLAG="True"
 fi
 
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BASELINE_OUT="${REPO_ROOT}/trajectories/comparison_${TIMESTAMP}/baseline_27b"
-PIPELINE_OUT="${REPO_ROOT}/trajectories/comparison_${TIMESTAMP}/pipeline_27b_9b"
+BASELINE_OUT="${REPO_ROOT}/trajectories/comparison_${TIMESTAMP}/baseline_30b"
+PIPELINE_OUT="${REPO_ROOT}/trajectories/comparison_${TIMESTAMP}/pipeline_30b_14b"
+TIME_LOG="${REPO_ROOT}/trajectories/comparison_${TIMESTAMP}/runtime_stats.txt"
+
+mkdir -p "${REPO_ROOT}/trajectories/comparison_${TIMESTAMP}"
 
 echo "=============================================="
 echo " Pipeline vs Baseline Comparison"
@@ -61,6 +64,7 @@ echo "  Large URL:  ${LARGE_URL}"
 echo "  Small URL:  ${SMALL_URL}"
 echo "  Baseline → ${BASELINE_OUT}"
 echo "  Pipeline → ${PIPELINE_OUT}"
+echo "  Time log → ${TIME_LOG}"
 echo "=============================================="
 
 COMMON_ARGS=(
@@ -74,23 +78,38 @@ COMMON_ARGS=(
     "--num_workers=${WORKERS}"
 )
 
+# 计时函数：输出秒数，并写入日志
+function time_it() {
+    local name="$1"
+    shift
+    local start end duration
+    start=$(date +%s)
+    "$@"
+    end=$(date +%s)
+    duration=$((end - start))
+    echo "[$name] 总运行时间: $duration 秒 ($((duration/60)) 分 $((duration%60)) 秒)" | tee -a "${TIME_LOG}"
+    return 0
+}
+
 # ── Run 1: Baseline (single 27B model) ──────────────────────────────
 echo ""
 echo ">>> [1/3] Running BASELINE (Qwen3.5-27B only) ..."
 echo ""
+time_it "BASELINE" \
 sweagent run-batch \
     "${COMMON_ARGS[@]}" \
     --output_dir "${BASELINE_OUT}" \
-    --config "${REPO_ROOT}/config/baseline_qwen27b.yaml"
+    --config "${REPO_ROOT}/config/baseline_qwen30b.yaml"
 
 # ── Run 2: Pipeline (27B planning + 9B coding + 27B verification) ───
 echo ""
 echo ">>> [2/3] Running PIPELINE (27B + 9B) ..."
 echo ""
+time_it "PIPELINE" \
 sweagent run-batch \
     "${COMMON_ARGS[@]}" \
     --output_dir "${PIPELINE_OUT}" \
-    --config "${REPO_ROOT}/config/pipeline_qwen.yaml"
+    --config "${REPO_ROOT}/config/pipeline_qwen30b.yaml"
 
 # ── Analysis ─────────────────────────────────────────────────────────
 echo ""
@@ -103,3 +122,4 @@ python3 "${SCRIPT_DIR}/analyze_comparison.py" \
 echo ""
 echo "=== Comparison complete ==="
 echo "Results are in: trajectories/comparison_${TIMESTAMP}/"
+echo "耗时统计已保存到: ${TIME_LOG}"

@@ -208,3 +208,17 @@ website/frontend/build
 agent_conf
 sb-cli-reports/
 trajectories_sft/
+
+# SGlang-test
+scripts/start_large_model.sh
+scripts/start_small_model.sh
+scripts/wait_for_services.sh
+
+*.txt
+
+config/*.bk
+trajectories/**/*.traj
+trajectories/**/*.yaml
+trajectories/README.md
+
+logs/

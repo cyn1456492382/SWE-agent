@@ -1,0 +1,111 @@
+# Baseline: single Qwen3.5-27B agent (no pipeline, no small model)
+# Used as the control group to compare against config/pipeline_qwen.yaml.
+#
+# This configuration mirrors the pipeline's *coding* phase but uses the large
+# model (27B) for everything, with the same call limit budget as the pipeline
+# total (planning 40 + coding 60 = 100 calls).
+#
+# Prerequisites:
+#   - Qwen3.5-27B served via SGLang at http://localhost:30001/v1
+#
+# Usage:
+#   sweagent run-single --config config/baseline_qwen27b.yaml \
+#     --env.repo.github_url=<url> --problem_statement.text="<issue>"
+#
+# For SWE-bench evaluation:
+#   sweagent run-batch --num_workers=4 \
+#     --instances.type=swe_bench --instances.subset=lite --instances.split=test \
+#     --instances.shuffle=True --instances.evaluate=True \
+#     --instances.deployment.docker_args='--memory=10g' \
+#     --config config/baseline_qwen30b.yaml
+
+agent:
+  type: default
+  model:
+    name: deepinfra/Qwen/Qwen3-30B-A3B
+    api_base: http://localhost:30001/v1
+    api_key: EMPTY
+    max_input_tokens: 32768
+    max_output_tokens: 8192
+    per_instance_cost_limit: 0
+    per_instance_call_limit: 100
+    total_cost_limit: 0
+    temperature: 0.0
+  templates:
+    system_template: |-
+      You are an expert software engineer proficient at analyzing code and making targeted fixes.
+      
+      YOUR ROLE:
+      - Understand the problem thoroughly before making changes
+      - Make minimal, correct changes to fix the issue
+      - Test your changes to ensure they work
+      - Be careful NOT to break existing functionality
+      
+      SUCCESS CRITERIA:
+      - The fix addresses the root cause of the issue
+      - The proposed fix is minimal and focused
+      - All test changes have been reverted
+
+      Format your response as:
+
+      THOUGHT: Your reasoning and analysis here
+
+      ```bash
+      your_command_here
+      ```
+
+      Failure to follow these rules will cause your response to be rejected.
+    instance_template: |-
+      <uploaded_files>
+      {{working_dir}}
+      </uploaded_files>
+      
+      I've uploaded a Python code repository. Fix this issue:
+
+      <issue>
+      {{problem_statement}}
+      </issue>
+
+      IMPORTANT: Test files are already correct. DO NOT modify them.
+      
+      APPROACH:
+      1. Search for relevant files
+      2. Create a reproduction script to confirm the bug
+      3. Make minimal code changes to fix it
+      4. Test your fix works
+      5. Delete temporary files
+      6. Run submit
+    next_step_template: |-
+      OBSERVATION:
+      {{observation}}
+    next_step_no_output_template: |-
+      Your last command ran successfully and did not produce any output.
+  tools:
+    execution_timeout: 400
+    bundles:
+      - path: tools/registry
+      - path: tools/edit_anthropic
+      - path: tools/review_on_submit_m
+      - path: tools/diff_state
+    enable_bash_tool: true
+    parse_function:
+      type: thought_action
+    registry_variables:
+      USE_FILEMAP: 'true'
+      SUBMIT_REVIEW_MESSAGES:
+        - |
+          ⚠️  FINAL REVIEW BEFORE SUBMISSION
+          
+          Checklist:
+          1. Is the fix complete and minimal?
+          2. Have you tested it?
+          3. Are all temp files deleted?
+          4. Are test files unchanged?
+          
+          Changes:
+          <diff>
+          {{diff}}
+          </diff>
+  history_processors:
+    - type: cache_control
+      last_n_messages: 2
