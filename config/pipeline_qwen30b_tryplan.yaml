@@ -32,13 +32,13 @@ agent:
   planning_agent:
     type: default
     model: &large_model
-      name: deepseek/deepseek-v4-flash
-      api_base: https://api.deepseek.com
-      api_key: $DEEPSEEK_API_KEY
+      name: deepinfra/Qwen/Qwen3-30B-A3B
+      api_base: http://localhost:30001/v1
+      api_key: EMPTY
       max_input_tokens: 32768
       max_output_tokens: 8192
       per_instance_cost_limit: 0
-      per_instance_call_limit: 40
+      per_instance_call_limit: 1
       total_cost_limit: 0
       temperature: 0.0
     templates:
@@ -105,13 +105,13 @@ agent:
   coding_agent:
     type: default
     model: &small_model
-      name: deepseek/deepseek-v4-pro
-      api_base: https://api.deepseek.com/
-      api_key: $DEEPSEEK_API_KEY
-      max_input_tokens: 65536
-      max_output_tokens: 32768
+      name: deepinfra/Qwen/Qwen3-30B-A3B
+      api_base: http://localhost:30000/v1
+      api_key: EMPTY
+      max_input_tokens: 32768
+      max_output_tokens: 8192
       per_instance_cost_limit: 0
-      per_instance_call_limit: 60
+      per_instance_call_limit: 1
       total_cost_limit: 0
       temperature: 0.0
     templates:
@@ -119,14 +119,6 @@ agent:
         You are a skilled software engineer who implements code changes based on a provided plan.
         Follow the plan precisely and make minimal, correct changes to resolve the issue.
         YOU MUST ONLY OUTPUT VALID BASH COMMANDS, NO OTHER TEXT, NO EXPLANATIONS, NO CODE, NO DESCRIPTIONS.
-        Follow ALL rules below 100% strictly:
-        1. NEVER write two Python statements on the SAME LINE.
-        2. ALWAYS write one statement per line.
-        3. NEVER leave syntax errors (missing colons, wrong indentation, invalid operators).
-        4. NEVER merge lines of code together.
-        5. Use proper indentation (4 spaces for Python).
-        6. Only output valid bash commands or valid Python code.
-        7. DO NOT add any extra explanation, comments, or natural language.
       instance_template: |-
         <uploaded_files>
         {{working_dir}}
@@ -184,13 +176,13 @@ agent:
   # ---------------------------------------------------------------
   verification:
     model:
-      name: deepseek/deepseek-v4-flash
-      api_base: https://api.deepseek.com
-      api_key: $DEEPSEEK_API_KEY
-      max_input_tokens: 65536
-      max_output_tokens: 32768
+      name: deepinfra/Qwen/Qwen3-30B-A3B
+      api_base: http://localhost:30001/v1
+      api_key: EMPTY
+      max_input_tokens: 32768
+      max_output_tokens: 8192
       per_instance_cost_limit: 0
-      per_instance_call_limit: 40
+      per_instance_call_limit: 1
       total_cost_limit: 0
       temperature: 0.0
     system_template: |-
@@ -236,9 +228,9 @@ agent:
       1. A SINGLE NUMERIC SCORE, OR
       2. A BASH COMMAND TO UPDATE /root/plan.md
       DO NOT MODIFY CODE. DO NOT OUTPUT ANY OTHER TEXT.
-    n_samples: 3
+    n_samples: 1
 
   # Pipeline parameters
-  max_verification_retries: 3
-  accept_score: 9.0
+  max_verification_retries: 300
+  accept_score: 8.0
   cost_limit: 0

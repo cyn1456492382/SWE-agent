@@ -23,11 +23,12 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 SUBSET="lite"
-SPLIT="dev"
-SLICE="0:100"
-WORKERS=4
-LARGE_URL="http://localhost:30001/v1"
-SMALL_URL="http://localhost:30000/v1"
+SPLIT="test"
+SLICE="0:10"
+WORKERS=2
+# LARGE_URL="http://localhost:30001/v1"
+# SMALL_URL="http://localhost:30000/v1"
+DEEPSEEK_API_KEY="sk-0cf81445e93049a5bec05d08c656b50d"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -35,8 +36,6 @@ while [[ $# -gt 0 ]]; do
         --split)     SPLIT="$2";     shift 2 ;;
         --slice)     SLICE="$2";     shift 2 ;;
         --workers)   WORKERS="$2";   shift 2 ;;
-        --large-url) LARGE_URL="$2"; shift 2 ;;
-        --small-url) SMALL_URL="$2"; shift 2 ;;
         *)           echo "Unknown: $1"; exit 1 ;;
     esac
 done
@@ -60,8 +59,8 @@ echo "  Split:      ${SPLIT}"
 echo "  Slice:      ${SLICE}"
 echo "  Workers:    ${WORKERS}"
 echo "  Evaluate:   ${EVALUATE_FLAG}"
-echo "  Large URL:  ${LARGE_URL}"
-echo "  Small URL:  ${SMALL_URL}"
+# echo "  Large URL:  ${LARGE_URL}"
+# echo "  Small URL:  ${SMALL_URL}"
 echo "  Baseline → ${BASELINE_OUT}"
 echo "  Pipeline → ${PIPELINE_OUT}"
 echo "  Time log → ${TIME_LOG}"
@@ -100,6 +99,7 @@ sweagent run-batch \
     "${COMMON_ARGS[@]}" \
     --output_dir "${BASELINE_OUT}" \
     --config "${REPO_ROOT}/config/baseline_qwen30b.yaml"
+    
 
 # ── Run 2: Pipeline (27B planning + 9B coding + 27B verification) ───
 echo ""
@@ -109,7 +109,7 @@ time_it "PIPELINE" \
 sweagent run-batch \
     "${COMMON_ARGS[@]}" \
     --output_dir "${PIPELINE_OUT}" \
-    --config "${REPO_ROOT}/config/pipeline_qwen30b.yaml"
+    --config "${REPO_ROOT}/config/pipeline_qwen30b_deepseek.yaml"
 
 # ── Analysis ─────────────────────────────────────────────────────────
 echo ""

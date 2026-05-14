@@ -22,9 +22,9 @@
 agent:
   type: default
   model:
-    name: deepinfra/Qwen/Qwen3-30B-A3B
-    api_base: http://localhost:30001/v1
-    api_key: EMPTY
+    name: deepseek/deepseek-v4-pro
+    api_base: https://api.deepseek.com/
+    api_key: $DEEPSEEK_API_KEY
     max_input_tokens: 32768
     max_output_tokens: 8192
     per_instance_cost_limit: 0

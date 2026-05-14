@@ -38,7 +38,7 @@ agent:
       max_input_tokens: 32768
       max_output_tokens: 8192
       per_instance_cost_limit: 0
-      per_instance_call_limit: 150
+      per_instance_call_limit: 60
       total_cost_limit: 0
       temperature: 0.0
     templates:
@@ -105,29 +105,28 @@ agent:
   coding_agent:
     type: default
     model: &small_model
-      name: deepinfra/Qwen/Qwen3-14B
-      api_base: http://localhost:30000/v1
+      name: deepinfra/Qwen/Qwen3-30B-A3B
+      api_base: http://localhost:30001/v1
       api_key: EMPTY
       max_input_tokens: 32768
       max_output_tokens: 8192
       per_instance_cost_limit: 0
-      per_instance_call_limit: 300
+      per_instance_call_limit: 100
       total_cost_limit: 0
       temperature: 0.0
     templates:
       system_template: |-
         You are a skilled software engineer who implements code changes based on a provided plan.
         Follow the plan precisely and make minimal, correct changes to resolve the issue.
-
-        Format your response as:
-
-        THOUGHT: Your reasoning and analysis here
-
-        ```bash
-        your_command_here
-        ```
-
-        Failure to follow these rules will cause your response to be rejected.
+        YOU MUST ONLY OUTPUT VALID BASH COMMANDS, NO OTHER TEXT, NO EXPLANATIONS, NO CODE, NO DESCRIPTIONS.
+        Follow ALL rules below 100% strictly:
+        1. NEVER write two Python statements on the SAME LINE.
+        2. ALWAYS write one statement per line.
+        3. NEVER leave syntax errors (missing colons, wrong indentation, invalid operators).
+        4. NEVER merge lines of code together.
+        5. Use proper indentation (4 spaces for Python).
+        6. Only output valid bash commands or valid Python code.
+        7. DO NOT add any extra explanation, comments, or natural language.
       instance_template: |-
         <uploaded_files>
         {{working_dir}}
@@ -149,6 +148,7 @@ agent:
         4. Run the submit command when done
 
         NOTE: The plan will be appended below in a <plan> tag.
+        FINAL REQUIREMENT: YOUR OUTPUT MUST BE ONLY BASH COMMANDS. NO NATURAL LANGUAGE, NO COMMENTS, NO EXTRA CONTENT.
       next_step_template: *next_step
       next_step_no_output_template: *next_step_no_output
     tools:
@@ -162,6 +162,20 @@ agent:
       parse_function: *parse_function
       registry_variables:
         USE_FILEMAP: 'true'
+        SUBMIT_REVIEW_MESSAGES:
+          - |
+            Please review your changes before final submission:
+
+            1. If you created a reproduction script, run it again to confirm the fix.
+            2. Remove any reproduction scripts.
+            3. If you modified any TEST files, revert them with `git checkout -- /path/to/test/file.py`.
+            4. Run submit again to confirm.
+
+            Your changes:
+
+            <diff>
+            {{diff}}
+            </diff>
     history_processors: *history_processors
 
   # ---------------------------------------------------------------
@@ -176,12 +190,15 @@ agent:
       max_input_tokens: 32768
       max_output_tokens: 8192
       per_instance_cost_limit: 0
+      per_instance_call_limit: 60
       total_cost_limit: 0
       temperature: 0.0
     system_template: |-
       You are an expert software engineer reviewing a code patch.
       You will be given a problem statement, a plan, and a code patch.
       Evaluate whether the patch correctly and completely solves the problem.
+      YOU MUST ONLY OUTPUT A FINAL SCORE OR A SINGLE BASH COMMAND THAT WRITES THE UPDATED PLAN CONTENT TO /root/plan.md.
+      DO NOT MODIFY ANY CODE DIRECTLY. DO NOT PROVIDE CODE FIXES.
     instance_template: |-
       Problem statement:
       {{problem_statement}}
@@ -194,7 +211,7 @@ agent:
       {{submission}}
       ```
 
-      {% if edited_files30 != "Empty. No edited files found." %}
+      {% if edited_files30 != 'Empty. No edited files found.' %}
       Edited files with surrounding context:
       ```
       {{edited_files30}}
@@ -207,12 +224,18 @@ agent:
       3. Are edge cases handled properly?
       4. Is it consistent with the codebase style and conventions?
       5. Are there any unnecessary changes (e.g., test modifications)?
+      6. Are there any indentation errors in the patch?
 
       If there are issues, describe them specifically so they can be fixed.
 
       The acceptance threshold is {{accept_score}}. On the last line, provide a score from 0 to 10
-      (10 = perfect fix, 0 = completely wrong). If your score is below {{accept_score}}, your
-      feedback will be sent back to the developer for revision.
+      (10 = perfect fix, 0 = completely wrong). If your score is below {{accept_score}}, use the issues you identified to decide whether to update /root/plan.md to guide the developer properly.
+      And if your score is below {{accept_score}}, your feedback will be sent back to the developer for revision.
+
+      YOU MAY ONLY OUTPUT:
+      1. A SINGLE NUMERIC SCORE, OR
+      2. A BASH COMMAND TO UPDATE /root/plan.md
+      DO NOT MODIFY CODE. DO NOT OUTPUT ANY OTHER TEXT.
     n_samples: 3
 
   # Pipeline parameters
