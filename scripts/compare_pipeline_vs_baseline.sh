@@ -28,7 +28,7 @@ SLICE="0:10"
 WORKERS=2
 # LARGE_URL="http://localhost:30001/v1"
 # SMALL_URL="http://localhost:30000/v1"
-DEEPSEEK_API_KEY="sk-0cf81445e93049a5bec05d08c656b50d"
+DEEPSEEK_API_KEY="sk-xxxxxxxxxxxxxxxxxxxx"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
